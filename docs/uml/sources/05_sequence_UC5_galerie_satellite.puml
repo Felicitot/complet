@@ -1,0 +1,57 @@
+@startuml
+!include style.puml
+title Séquence — UC5 : Consulter la galerie satellite
+hide footbox
+autonumber
+
+actor "Prévisionniste" as U
+boundary "Dashboard React\n(SatellitesCard)" as UI
+boundary "guidanceApi.js" as API
+control "Routeur Express\n(routes/guidance.js)" as R
+control "GuidanceGenerator" as G
+entity "GuidanceStore" as S
+control "SatelliteRenderer" as SR
+
+U -> UI : affiche la carte « Satellites / AI »
+activate UI
+UI -> API : fetchSatellites()
+activate API
+API -> R : GET /api/guidance/satellites
+activate R
+R -> G : getSatelliteThumbnails(8)
+activate G
+G -> S : readStatus() → epoch
+
+loop pour chacune des 8 dernières échéances (pas de 6 h)
+  G -> S : getCached("satellites", clé)
+  S --> G : buffer ou null
+  alt vignette absente du cache
+    G -> SR : renderSatelliteThumbnail(horodatage, seedKey)
+    SR --> G : buffer PNG
+    G -> S : setCached("satellites", clé, buffer)
+  end
+end
+
+G --> R : items [{key, label, url}]
+deactivate G
+R --> API : 200 {items}
+deactivate R
+API --> UI : liste des vignettes
+deactivate API
+
+loop pour chaque vignette de la liste
+  UI -> R : GET /api/guidance/satellites/image/{clé}
+  activate R
+  R -> G : getSatelliteImageByKey(clé)
+  G -> S : getCached("satellites", clé)
+  S --> G : buffer ou null
+  alt vignette trouvée
+    R --> UI : 200 image/png (Cache-Control : 3600 s)
+  else vignette absente
+    R --> UI : 404 {message : "Image non trouvée."}
+  end
+  deactivate R
+end
+UI --> U : galerie des dernières images (mise à jour toutes les 6 h)
+deactivate UI
+@enduml

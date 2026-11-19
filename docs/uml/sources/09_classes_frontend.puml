@@ -1,0 +1,140 @@
+@startuml
+!include style.puml
+title Diagramme de classes — Frontend (composants React)
+hide empty members
+skinparam nodesep 35
+skinparam ranksep 55
+
+class App <<composant racine>> {
+  -categories : Category[]
+  -status : SystemStatus
+  -selections : Map<String, Selection>
+  -isLoading : boolean
+  -isRefreshing : boolean
+  -loadError : String
+  +handleRefresh()
+  +updateSelection(categoryId, next)
+}
+
+class GuidanceApi <<module api/guidanceApi.js>> {
+  +fetchCategories() : Category[]
+  +fetchStatus() : SystemStatus
+  +triggerRefresh() : RefreshResult
+  +fetchSatellites() : SatelliteImage[]
+  +guidanceImageUrl(categoryId, params) : String
+  +satelliteImageUrl(url) : String
+}
+
+class Header {
+  +onRefresh()
+  +isRefreshing : boolean
+  -useUtcClock()
+}
+class Sidebar {
+  +categories : Category[]
+  -scrollTo(id)
+}
+class StatusPanel {
+  +status : SystemStatus
+}
+class SummaryRow {
+  +categories : Category[]
+  +selections : Map
+  +epoch : int
+}
+
+package "Cartes de guidance (GuidanceCards)" {
+  class CardShell {
+    +category : Category
+  }
+  class ModelRunCard {
+    +category : Category
+    +epoch : int
+    +selection : Selection
+    +onChange(next)
+  }
+  class PluiesCard {
+    +category : Category
+    +epoch : int
+    +selection : Selection
+    +onChange(next)
+  }
+  class SpecificItemsCard {
+    +category : Category
+    +epoch : int
+  }
+  class SatellitesCard {
+    +category : Category
+    -items : SatelliteImage[]
+  }
+  class Chip {
+    +label : String
+    +active : boolean
+    +onClick()
+  }
+  class DayTabs {
+    +maxDay : int
+    +day : int
+    +onChange(d)
+  }
+  class ImagePreview {
+    +src : String
+    +downloadName : String
+    -failed : boolean
+  }
+}
+
+class Selection <<DTO>> {
+  +run : String
+  +model : String
+  +type : String
+  +item : String
+  +day : int
+}
+class Category <<DTO>> {
+  +id : String
+  +label : String
+  +kind : String
+  +runs / models / types / items
+}
+class SystemStatus <<DTO>> {
+  +epoch : int
+  +categories : Map
+}
+class SatelliteImage <<DTO>> {
+  +key : String
+  +label : String
+  +url : String
+}
+
+App *-- Header
+App *-- Sidebar
+App *-- StatusPanel
+App *-- SummaryRow
+App *-- ModelRunCard : 3 (Vent, Houles, Températures)
+App *-- PluiesCard
+App *-- SpecificItemsCard
+App *-- SatellitesCard
+App --> GuidanceApi
+App o-- "0..*" Selection
+App o-- "*" Category
+App o-- "0..1" SystemStatus
+
+ModelRunCard *-- CardShell
+PluiesCard *-- CardShell
+SpecificItemsCard *-- CardShell
+SatellitesCard *-- CardShell
+ModelRunCard o-- "*" Chip
+ModelRunCard *-- DayTabs
+ModelRunCard *-- ImagePreview
+PluiesCard o-- "*" Chip
+PluiesCard *-- DayTabs
+PluiesCard *-- ImagePreview
+
+ModelRunCard ..> GuidanceApi : guidanceImageUrl
+note bottom of GuidanceApi
+  PluiesCard, SpecificItemsCard et SummaryRow
+  utilisent aussi guidanceImageUrl().
+end note
+SatellitesCard ..> GuidanceApi : fetchSatellites
+@enduml

@@ -1,0 +1,50 @@
+@startuml
+!include style.puml
+title Diagramme de déploiement — Portail des guidances de prévision
+left to right direction
+skinparam nodesep 50
+skinparam ranksep 90
+
+node "Poste du prévisionniste" <<appareil>> as POSTE {
+  node "Navigateur web\n(Chrome, Firefox, Edge)" <<environnement d'exécution>> as NAV {
+    artifact "SPA Rivotra\nReact 18 + Tailwind CSS\n(index.html, assets JS/CSS)" as SPA
+  }
+}
+
+node "Serveur web du frontend\n(Vite dev / preview, port 5173)" <<appareil>> as WEB {
+  artifact "rivotra-frontend\n(dist/ ou sources)" as FRONT
+}
+
+node "Serveur d'application (Linux)" <<appareil>> as APP {
+  node "Node.js 18 ou plus" <<environnement d'exécution>> as NODE {
+    artifact "rivotra-backend\n(src/*.js, .env)" as BACK
+    component "API Express\nport 4000\n/api/guidance" as API
+    component "sharp (libvips)\nSVG vers PNG" as SHARP
+  }
+  database "Système de fichiers\ndata/guidances/\nPNG et _status.json" as FS
+}
+
+node "Serveur de prévision\nMétéo Madagascar" <<appareil, à brancher>> as PREV {
+  artifact "Scripts de prévision\n(Python…)" as SCRIPTS
+  artifact "Fichiers GRIB\net PNG produits" as GRIB
+}
+
+cloud "Sources externes" as EXT {
+  component "Modèles numériques\nGFS, ECMWF, ICON, UKMO,\nAROME, WW3, WAM" as MODELES
+  component "Images satellites\n(EUMETSAT)" as SAT
+}
+
+SPA --> FRONT : HTTP 5173\nchargement de la SPA
+SPA --> API : HTTP 4000\nJSON + image/png (CORS)
+API ..> SHARP : appel de bibliothèque
+API --> FS : lecture / écriture
+API ..> GRIB : lit les PNG\n<<à brancher>>
+SCRIPTS ..> GRIB : produit
+MODELES ..> SCRIPTS : téléchargement\n<<à brancher>>
+SAT ..> SCRIPTS : toutes les 6 h\n<<à brancher>>
+
+legend bottom
+  Traits pleins : fonctionnement actuel (images simulées).
+  Traits pointillés « à brancher » : intégration de vos scripts réels.
+endlegend
+@enduml

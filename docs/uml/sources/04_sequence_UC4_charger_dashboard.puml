@@ -1,0 +1,49 @@
+@startuml
+!include style.puml
+title Séquence — UC4 : Charger le Dashboard et consulter le statut système
+hide footbox
+autonumber
+
+actor "Prévisionniste" as U
+boundary "Dashboard React\n(App)" as UI
+boundary "guidanceApi.js" as API
+control "Routeur Express\n(routes/guidance.js)" as R
+control "GuidanceGenerator" as G
+entity "GuidanceStore" as S
+
+U -> UI : ouvre http://localhost:5173
+activate UI
+UI -> UI : useEffect au montage (isLoading = true)
+UI -> API : fetchCategories() et fetchStatus() (Promise.all)
+activate API
+
+par chargement du registre
+  API -> R : GET /api/guidance/categories
+  activate R
+  R --> API : 200 CATEGORIES (JSON)
+  deactivate R
+else chargement du statut
+  API -> R : GET /api/guidance/status
+  activate R
+  R -> G : getStatus()
+  activate G
+  G -> S : readStatus()
+  S --> G : statut (ou {} au premier lancement)
+  G --> R : {epoch, categories}
+  deactivate G
+  R --> API : 200 {epoch, categories}
+  deactivate R
+end
+
+alt backend joignable
+  API --> UI : catégories + statut
+  UI -> UI : defaultSelectionFor(catégorie) pour chaque carte
+  UI --> U : StatusPanel (« Tous les systèmes opérationnels » ou « Mise à jour en cours »),\nSidebar et cartes de guidance
+else backend injoignable
+  API --> UI : erreur réseau
+  UI --> U : bandeau « Impossible de contacter le backend… »
+end
+deactivate API
+UI -> UI : isLoading = false
+deactivate UI
+@enduml

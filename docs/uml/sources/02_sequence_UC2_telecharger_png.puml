@@ -1,0 +1,31 @@
+@startuml
+!include style.puml
+title Séquence — UC2 : Télécharger une image PNG
+hide footbox
+autonumber
+
+actor "Prévisionniste" as U
+boundary "Dashboard React\n(ImagePreview)" as UI
+control "Routeur Express\n(routes/guidance.js)" as R
+control "GuidanceGenerator" as G
+entity "GuidanceStore\n(cache disque)" as S
+
+note over U, UI : Précondition : une image est affichée (UC1)
+
+U -> UI : clique sur « Télécharger PNG »
+activate UI
+UI -> UI : lien <a href=URL download="{catégorie}_{run}_{modèle}_J{n}.png">
+UI -> R : GET même URL d'image (requête du navigateur)
+activate R
+R -> G : getChartImage(catégorie, params)
+activate G
+ref over G, S : Cache ou génération — voir UC1
+G --> R : buffer PNG
+deactivate G
+R --> UI : 200 image/png
+deactivate R
+UI --> U : enregistre le fichier sur le poste
+deactivate UI
+
+note over U : Le fichier téléchargé est identique à l'aperçu affiché
+@enduml

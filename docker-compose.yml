@@ -1,0 +1,31 @@
+# Démarrage : copier .env.example en .env, définir ADMIN_PASSWORD, puis
+#   docker compose up --build
+# Le portail est alors disponible sur http://localhost:8080
+services:
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Définissez ADMIN_PASSWORD dans le fichier .env}
+      TOKEN_SECRET: ${TOKEN_SECRET:-}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8080}
+      TRUST_PROXY: "1"
+    volumes:
+      # Données persistantes (réglages, historique, cache d'images simulées).
+      - rivotra-data:/data
+      # Vos scripts (lecture seule) : ajoutez-y des fichiers .js / .py / .sh.
+      - ./backend/scripts:/app/scripts:ro
+      # Vos vrais PNG produits par vos scripts (lecture seule). Adaptez le
+      # chemin de gauche, puis utilisez /sorties/... dans Paramètres.
+      # - /chemin/vers/vos/sorties:/sorties:ro
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8080}:80"
+    depends_on:
+      - backend
+
+volumes:
+  rivotra-data:

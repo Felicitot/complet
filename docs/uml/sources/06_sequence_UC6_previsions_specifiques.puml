@@ -1,0 +1,41 @@
+@startuml
+!include style.puml
+title Séquence — UC6 : Consulter les prévisions spécifiques
+hide footbox
+autonumber
+
+actor "Prévisionniste" as U
+boundary "Dashboard React\n(SpecificItemsCard)" as UI
+control "Routeur Express\n(routes/guidance.js)" as R
+control "GuidanceGenerator" as G
+entity "GuidanceStore" as S
+control "ChartRenderer" as C
+
+U -> UI : affiche la carte « Prévisions spécifiques »
+activate UI
+
+loop pour chaque phénomène (Orages, CPRAT, Feux de brousse, Brouillards, Grêle)
+  UI -> R : GET /api/guidance/previsions_specifiques/image?item={id}&v=epoch
+  activate R
+  R -> G : getChartImage("previsions_specifiques", {item})
+  activate G
+  G -> S : getCached(catégorie, clé)
+  S --> G : buffer ou null
+  alt image absente du cache
+    G -> C : renderChartPNG(palette du phénomène, seed)
+    C --> G : buffer PNG
+    G -> S : setCached(catégorie, clé, buffer)
+  end
+  G --> R : buffer PNG
+  deactivate G
+  R --> UI : 200 image/png
+  deactivate R
+end
+UI --> U : liste des phénomènes avec vignette et bouton « Télécharger »
+
+opt l'utilisateur télécharge un phénomène
+  U -> UI : clique sur « Télécharger »
+  UI --> U : fichier previsions_specifiques_{item}.png (voir UC2)
+end
+deactivate UI
+@enduml

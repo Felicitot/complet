@@ -1,0 +1,60 @@
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 13
+skinparam shadowing false
+skinparam roundCorner 6
+skinparam dpi 150
+skinparam ArrowColor #1F3A5F
+skinparam ArrowFontSize 12
+skinparam titleFontSize 20
+skinparam titleFontStyle bold
+skinparam titleFontColor #0C2340
+skinparam NoteBackgroundColor #FFF8DC
+skinparam NoteBorderColor #B8A25A
+skinparam sequence {
+  ArrowColor #1F3A5F
+  LifeLineBorderColor #7A8CA5
+  LifeLineBackgroundColor #DCE8F8
+  ParticipantBorderColor #1F3A5F
+  ParticipantBackgroundColor #EAF1FB
+  ActorBorderColor #1F3A5F
+  ActorBackgroundColor #FFFFFF
+  GroupBorderColor #7A8CA5
+  GroupBackgroundColor #FFFFFF
+  GroupHeaderFontColor #0C2340
+}
+skinparam class {
+  BackgroundColor #FFFBE6
+  BorderColor #1F3A5F
+  HeaderBackgroundColor #F6EBB8
+  ArrowColor #1F3A5F
+}
+skinparam classAttributeIconSize 0
+skinparam package {
+  BackgroundColor #F5F8FC
+  BorderColor #1F3A5F
+}
+skinparam node {
+  BackgroundColor #F5F8FC
+  BorderColor #1F3A5F
+}
+skinparam artifact {
+  BackgroundColor #FFFBE6
+  BorderColor #1F3A5F
+}
+skinparam database {
+  BackgroundColor #EEF6EE
+  BorderColor #1F3A5F
+}
+skinparam component {
+  BackgroundColor #EAF1FB
+  BorderColor #1F3A5F
+}
+skinparam usecase {
+  BackgroundColor #EAF1FB
+  BorderColor #1F3A5F
+}
+skinparam actor {
+  BackgroundColor #FFFFFF
+  BorderColor #1F3A5F
+}

@@ -1,0 +1,42 @@
+@startuml
+!include style.puml
+title Séquence — UC7 : Brancher un script de prévision réel (évolution prévue)
+hide footbox
+autonumber
+
+actor "Administrateur" as A
+participant "Script de prévision\n(ex. Python : orages)" as SC
+database "Dossier de sortie\n(PNG produits)" as OUT
+control "GuidanceGenerator\nrenderForCategory()" as G
+entity "GuidanceStore\n(cache disque)" as S
+boundary "Dashboard React" as UI
+
+note over A, G
+  Point d'intégration unique : renderForCategory()
+  (services/guidanceGenerator.js). Cache, routes et frontend ne changent pas.
+end note
+
+== Cas A — le script est déjà planifié (cron) ==
+SC -> OUT : produit les PNG (catégorie / run / modèle / échéance)
+G -> OUT : lit le fichier correspondant à la sélection
+OUT --> G : buffer PNG
+
+== Cas B — le script est lancé à la demande ==
+G -> SC : exécution en sous-processus (child_process)
+activate SC
+SC -> OUT : écrit le PNG
+SC --> G : fin d'exécution
+deactivate SC
+G -> OUT : lit le PNG produit
+OUT --> G : buffer PNG
+
+== Dans les deux cas ==
+G -> S : setCached(catégorie, clé, buffer)
+G --> UI : PNG servi via GET /api/guidance/{catégorie}/image (voir UC1)
+UI --> A : l'image réelle remplace l'image simulée
+
+note over G, SC
+  Si le script est lent, le lancer pendant « Actualiser »
+  (refreshAll) et ne faire que lire son résultat ici.
+end note
+@enduml

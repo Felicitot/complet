@@ -1,0 +1,99 @@
+@startuml
+!include style.puml
+title Diagramme de paquetage — Backend, frontend et bibliothèques
+skinparam packageStyle folder
+skinparam nodesep 45
+skinparam ranksep 70
+left to right direction
+
+package "rivotra-frontend / src" as FRONTEND {
+  package "(racine)" as FROOT {
+    note as N0
+      main.jsx
+      App.jsx
+    end note
+  }
+  package "components" as COMPONENTS {
+    note as N1
+      Header.jsx
+      Sidebar.jsx
+      StatusPanel.jsx
+      SummaryRow.jsx
+      GuidanceCards.jsx
+    end note
+  }
+  package "api" as API {
+    note as N2
+      guidanceApi.js
+    end note
+  }
+}
+
+package "rivotra-backend / src" as BACKEND {
+  package "(racine)" as BROOT {
+    note as N3
+      index.js
+    end note
+  }
+  package "routes" as ROUTES {
+    note as N4
+      guidance.js
+    end note
+  }
+  package "services" as SERVICES {
+    note as N5
+      guidanceGenerator.js
+      chartRenderer.js
+      satelliteRenderer.js
+      guidanceStore.js
+      fieldSynth.js
+    end note
+  }
+  package "data" as DATA {
+    note as N6
+      categories.js
+      colormaps.js
+      geoExtent.js
+      madagascarShape.js
+    end note
+  }
+}
+
+package "Bibliothèques externes" as EXT <<externe>> {
+  package "react, react-dom" as REACT {
+  note as NX1
+    interface utilisateur
+  end note
+}
+  package "lucide-react, tailwindcss" as UILIB {
+  note as NX2
+    icônes et styles
+  end note
+}
+  package "express, cors, dotenv" as EXPRESS {
+  note as NX3
+    serveur HTTP
+  end note
+}
+  package "sharp" as SHARPLIB {
+  note as NX4
+    conversion SVG vers PNG
+  end note
+}
+}
+
+FROOT ..> COMPONENTS : <<import>>
+FROOT ..> API : <<import>>
+COMPONENTS ..> API : <<import>>
+API ..> ROUTES : HTTP /api/guidance\n(dépendance d'exécution)
+
+BROOT ..> ROUTES : <<import>>
+ROUTES ..> SERVICES : <<import>>
+ROUTES ..> DATA : <<import>>
+SERVICES ..> DATA : <<import>>
+
+FRONTEND ..> REACT
+COMPONENTS ..> UILIB
+BROOT ..> EXPRESS
+SERVICES ..> SHARPLIB
+@enduml

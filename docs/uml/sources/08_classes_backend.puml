@@ -1,0 +1,170 @@
+@startuml
+!include style.puml
+title Diagramme de classes — Backend (domaine et services)
+hide empty members
+skinparam nodesep 40
+skinparam ranksep 60
+
+package "Domaine (data/)" {
+  enum CategoryKind {
+    model_run
+    type_model_run
+    items
+    gallery
+  }
+  class Category <<entité>> {
+    +id : String
+    +label : String
+    +description : String
+    +color : String
+    +badge : String
+    +kind : CategoryKind
+    +runs : String[]
+    +models : String[]
+    +types : String[]
+    +maxDay : int
+    +colormap : String
+    +showBarbs : boolean
+    +thresholds : int[]
+    +anomalyThresholds : int[]
+    +updateFrequencyHours : int
+  }
+  class Item {
+    +id : String
+    +label : String
+    +colormap : String
+  }
+  class ProbabilityBand {
+    +label : String
+    +color : String
+  }
+  class Colormap {
+    +domain : float[2]
+    +unit : String
+    +stops : String[]
+  }
+  class CategoryRegistry <<module categories.js>> {
+    +CATEGORIES : Category[]
+    +getCategory(id) : Category
+  }
+  class ColormapRegistry <<module colormaps.js>> {
+    +COLORMAPS : Map
+    +getColormap(id) : Colormap
+  }
+  class GeoExtent <<module geoExtent.js>> {
+    +LON_MIN = 40
+    +LON_MAX = 52
+    +LAT_MIN = -26
+    +LAT_MAX = -12
+    +lonTicks(step) : int[]
+    +latTicks(step) : int[]
+  }
+}
+
+package "Données échangées" {
+  class GuidanceParams <<DTO>> {
+    +run : String
+    +model : String
+    +type : String
+    +item : String
+    +day : int
+  }
+  class ChartOptions <<DTO>> {
+    +title : String
+    +subtitleLeft : String
+    +subtitleRight : String
+    +colormapId : String
+    +seed : float
+    +showBarbs : boolean
+    +footnote : String
+  }
+  class SystemStatus <<DTO>> {
+    +epoch : int
+  }
+  class CategoryStatus <<DTO>> {
+    +status : String
+    +lastUpdate : ISODate
+  }
+  class SatelliteImage <<DTO>> {
+    +key : String
+    +label : String
+    +url : String
+  }
+  class RefreshResult <<DTO>> {
+    +processedAt : ISODate
+    +epoch : int
+  }
+}
+
+package "Services" {
+  class ExpressApp <<index.js>> {
+    +use(cors, json)
+    +listen(PORT)
+  }
+  class GuidanceRouter <<routes/guidance.js>> {
+    +GET /categories
+    +GET /status
+    +POST /refresh
+    +GET /satellites
+    +GET /satellites/image/:key
+    +GET /:category/image
+  }
+  class GuidanceGenerator <<service>> {
+    +getChartImage(categoryId, params) : Buffer
+    +refreshAll() : RefreshResult
+    +getStatus() : SystemStatus
+    +getSatelliteThumbnails(count) : SatelliteImage[]
+    +getSatelliteImageByKey(key) : Buffer
+    -buildKey(category, params, epoch) : String
+    -renderForCategory(category, params, epoch) : Buffer
+    -getEpoch() : int
+  }
+  class ChartRenderer <<service>> {
+    +renderChartPNG(options) : Buffer
+    -buildSvg(options) : String
+    -buildGrid(seed, step) : Cell[]
+  }
+  class SatelliteRenderer <<service>> {
+    +renderSatelliteThumbnail(label, seedKey) : Buffer
+  }
+  class GuidanceStore <<service>> {
+    +getCached(category, key) : Buffer
+    +setCached(category, key, buffer)
+    +clearAllCache()
+    +clearCategoryCache(category)
+    +readStatus() : Object
+    +writeStatus(status)
+    +touchCategoryStatus(id, patch)
+    +keyToFilePath(category, key) : String
+  }
+  class FieldSynth <<service>> {
+    +fieldValue01(lon, lat, seed) : float
+    +windAngle(lon, lat, seed) : float
+    +seedFromKey(key, salt) : float
+  }
+}
+
+Category *-- Item
+Category *-- ProbabilityBand
+Category ..> CategoryKind
+Item ..> Colormap
+CategoryRegistry o-- "6" Category
+ColormapRegistry o-- "8" Colormap
+SystemStatus *-- CategoryStatus
+
+ExpressApp --> GuidanceRouter : monte /api/guidance
+GuidanceRouter --> GuidanceGenerator
+GuidanceRouter ..> CategoryRegistry : getCategory
+GuidanceGenerator --> GuidanceStore
+GuidanceGenerator --> ChartRenderer
+GuidanceGenerator --> SatelliteRenderer
+GuidanceGenerator ..> CategoryRegistry
+GuidanceGenerator ..> GuidanceParams
+GuidanceGenerator ..> RefreshResult
+GuidanceGenerator ..> SatelliteImage
+GuidanceGenerator ..> SystemStatus
+ChartRenderer ..> ChartOptions
+ChartRenderer --> FieldSynth
+ChartRenderer ..> ColormapRegistry
+ChartRenderer ..> GeoExtent
+@enduml

@@ -1,0 +1,60 @@
+@startuml
+!include style.puml
+title Séquence — UC3 : Actualiser le traitement
+hide footbox
+autonumber
+
+actor "Prévisionniste" as U
+boundary "Dashboard React\n(Header / App)" as UI
+boundary "guidanceApi.js" as API
+control "Routeur Express\n(routes/guidance.js)" as R
+control "GuidanceGenerator" as G
+entity "GuidanceStore" as S
+database "data/guidances/\n(PNG + _status.json)" as FS
+
+U -> UI : clique sur « Actualiser »
+activate UI
+UI -> UI : isRefreshing = true (bouton en rotation)
+UI -> API : triggerRefresh()
+activate API
+API -> R : POST /api/guidance/refresh
+activate R
+R -> G : refreshAll()
+activate G
+G -> S : readStatus()
+S --> G : statut courant (epoch n)
+G -> S : clearAllCache()
+S -> FS : supprime les PNG et recrée le dossier
+G -> G : epoch = n + 1 ; statut « disponible » pour chaque catégorie
+G -> S : writeStatus(nouveau statut)
+S -> FS : écrit _status.json
+G --> R : {processedAt, epoch}
+deactivate G
+
+alt traitement réussi
+  R --> API : 200 {status : "ok", processedAt, epoch}
+  deactivate R
+  API --> UI : résultat
+  UI -> API : fetchStatus()
+  API -> R : GET /api/guidance/status
+  activate R
+  R -> G : getStatus()
+  G -> S : readStatus()
+  S --> G : statut
+  G --> R : {epoch, categories}
+  R --> API : 200 {epoch, categories}
+  deactivate R
+  API --> UI : statut à jour
+  UI -> UI : setStatus() → les URL d'image reçoivent ?v=epoch
+  UI --> U : StatusPanel mis à jour, images rechargées
+  note right of UI : Les images visibles sont redemandées\net régénérées à la demande (voir UC1)
+else échec du traitement
+  R --> API : 500 {status : "error", message}
+  deactivate R
+  API --> UI : Error(message)
+  UI --> U : bandeau d'erreur affiché
+end
+deactivate API
+UI -> UI : isRefreshing = false
+deactivate UI
+@enduml

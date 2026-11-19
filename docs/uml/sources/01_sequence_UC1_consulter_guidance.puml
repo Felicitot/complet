@@ -1,0 +1,57 @@
+@startuml
+!include style.puml
+title Séquence — UC1 : Consulter une guidance (Vent, Pluies, Houles, Températures)
+hide footbox
+autonumber
+
+actor "Prévisionniste" as U
+boundary "Dashboard React\n(ModelRunCard / PluiesCard)" as UI
+boundary "guidanceApi.js" as API
+control "Routeur Express\n(routes/guidance.js)" as R
+control "GuidanceGenerator" as G
+entity "GuidanceStore\n(cache disque)" as S
+control "ChartRenderer" as C
+
+U -> UI : choisit Run, Modèle (ou Type) et Échéance
+activate UI
+UI -> UI : met à jour la sélection (état React)
+UI -> API : guidanceImageUrl(catégorie, run, modèle, jour, epoch)
+activate API
+API --> UI : URL de l'image
+deactivate API
+UI -> R : GET /api/guidance/{catégorie}/image?run&model&day&v=epoch
+activate R
+R -> R : getCategory(id) + paramètres par défaut
+
+alt catégorie inconnue
+  R --> UI : 404 {message : "Catégorie inconnue."}
+  UI --> U : affiche « Image indisponible »
+else catégorie valide
+  R -> G : getChartImage(catégorie, params)
+  activate G
+  G -> S : readStatus()
+  S --> G : epoch courant
+  G -> G : buildKey(catégorie, params, epoch)
+  G -> S : getCached(catégorie, clé)
+  activate S
+  S --> G : buffer PNG ou null
+  deactivate S
+  alt image absente du cache
+    G -> C : renderChartPNG(titre, palette, seed, barbules)
+    activate C
+    C -> C : buildGrid() (champ simulé) puis buildSvg()
+    C -> C : conversion SVG → PNG (sharp)
+    C --> G : buffer PNG
+    deactivate C
+    G -> S : setCached(catégorie, clé, buffer)
+  else image déjà en cache
+    note right of G : aucun rendu nécessaire
+  end
+  G --> R : buffer PNG
+  deactivate G
+  R --> UI : 200 image/png (Cache-Control : 300 s)
+  UI --> U : affiche l'aperçu de l'image
+end
+deactivate R
+deactivate UI
+@enduml
